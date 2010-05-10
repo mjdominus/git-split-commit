@@ -1,0 +1,9 @@
+
+git-split-commit
+
+Idea: Take a commit, or a range of commits.
+Produce a diff file.
+Break the diff file into hunks.  
+Throw each hunk into a separate file whose name looks like
+      orig-filename:SHA-1:seqno
+
