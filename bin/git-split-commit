@@ -1,0 +1,4 @@
+#!/usr/bin/perl
+
+use MJD::GitUtil;
+die "Unimplemented.\n";

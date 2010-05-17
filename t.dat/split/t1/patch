@@ -1,0 +1,52 @@
+commit b9648f3e0f3f6fbddb9332e6dfcc5b6c57d8bf33
+Author: Mark Dominus <mjd@icgroup.com>
+Date:   Fri May 14 17:39:43 2010 -0400
+
+    end-of-week megapatch
+
+diff --git a/perl-lib/Pobox/Filter/Web/FilterForm.pm b/perl-lib/Pobox/Filter/Web/FilterForm.pm
+index f93faa5..98d30bc 100644
+--- a/perl-lib/Pobox/Filter/Web/FilterForm.pm
++++ b/perl-lib/Pobox/Filter/Web/FilterForm.pm
+@@ -25,6 +25,13 @@ sub new {
+ sub form { $_[0]{f} }
+ sub set_form { $_[0]{f} = $_[1] }
+ 
++sub handler_action {
++  my $self = shift;
++  return "delete" if $self->form->{'delete_action'};
++  return $self->form->{'handler_action'} ||
++    die "no handler_action";
++}
++
+ sub form_to_filter {
+   my $self = shift;
+ 
+diff --git a/perl-lib/Pobox/Filter/Web/Stringizer.pm b/perl-lib/Pobox/Filter/Web/Stringizer.pm
+index 0e59e96..820727b 100644
+--- a/perl-lib/Pobox/Filter/Web/Stringizer.pm
++++ b/perl-lib/Pobox/Filter/Web/Stringizer.pm
+@@ -84,6 +84,11 @@ sub block_pattern_lines {
+   return join "\n", @lines, "";
+ }
+ 
++sub n_blocks {
++  my $self = shift;
++  return $self->condition->n_branches;
++}
++
+ sub die {
+   my ($self, $exn) = @_;
+   die $exn if ref $exn;
+diff --git a/perl-lib/icg2/Account/FilterManager.pm b/perl-lib/icg2/Account/FilterManager.pm
+index 04d0edb..fc0812b 100644
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -175,6 +175,7 @@ sub save_filter {
+ 
+   return $self->txn_do(
+     sub {
++      $self->delete_filter($filter);
+       $self->store_rows([$filter->action_rows()], "Action");
+       $self->store_rows([$filter->condition_rows()], "Condition");
+       return 1;

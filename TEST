@@ -1,0 +1,13 @@
+#!/icg/bin/perl
+
+use TAP::Harness;
+use File::Find;
+my $harness = TAP::Harness->new( { lib => [ 'lib' ] } );
+my @tests;
+find(\&wanted, 't');
+$harness->runtests(@tests);
+
+sub wanted {
+  next unless -f && /\.t$/;
+  push @tests, $File::Find::name;
+}
