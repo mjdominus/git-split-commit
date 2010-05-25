@@ -1,0 +1,273 @@
+commit 3355b0d4c7c1dfce40bbb4f41bd46b5aaae319ac
+Author: Mark Dominus <mjd@icgroup.com>
+Date:   Fri May 21 17:01:47 2010 -0400
+
+    end-of-day megacommit
+
+diff --git a/perl-lib/Pobox/Filter/Action/MHActionLegacy.pm b/perl-lib/Pobox/Filter/Action/MHActionLegacy.pm
+index 7169683..7416564 100644
+--- a/perl-lib/Pobox/Filter/Action/MHActionLegacy.pm
++++ b/perl-lib/Pobox/Filter/Action/MHActionLegacy.pm
+@@ -75,4 +75,17 @@ sub rowFactory {
+   return 'Pobox::Schema::Result::Action';
+ }
+ 
++sub is_active {
++  my $self = shift;
++  my $switch = $self->row->switch;
++  return $switch eq "on" ? 1 : $switch eq "off" ? 0 :
++    die "unknown action 'switch' value '$switch'; aborting";
++}
++
++sub deactivate {  $_[0]->row->switch("off"); }
++sub activate {  $_[0]->row->switch("on"); }
++
++sub order { $_[0]->row->actid; }
++sub set_order { $_[0]->row->actid($_[1]); }
++
+ 1;
+diff --git a/perl-lib/Pobox/Filter/MHLegacy.pm b/perl-lib/Pobox/Filter/MHLegacy.pm
+index ea856bd..819a5ec 100644
+--- a/perl-lib/Pobox/Filter/MHLegacy.pm
++++ b/perl-lib/Pobox/Filter/MHLegacy.pm
+@@ -75,4 +75,30 @@ sub _fixup_rows {
+   }
+ }
+ 
++sub is_active {
++  my $self = shift;
++  return $self->action->is_active;
++}
++
++sub deactivate {
++  my $self = shift;
++  return $self->action->deactivate;
++}
++
++sub activate {
++  my $self = shift;
++  return $self->action->activate;
++}
++
++sub order {
++  my $self = shift;
++  return $self->action->order;
++}
++
++sub set_order {
++  my $self = shift;
++  $self->set_actid(@_);
++  return $self->action->set_order(@_);
++}
++
+ 1;
+diff --git a/perl-lib/Pobox/Filter/Web/Stringizer.pm b/perl-lib/Pobox/Filter/Web/Stringizer.pm
+index 820727b..182ffeb 100644
+--- a/perl-lib/Pobox/Filter/Web/Stringizer.pm
++++ b/perl-lib/Pobox/Filter/Web/Stringizer.pm
+@@ -134,7 +134,7 @@ sub cond_desc {
+   my $cond = $self->condition;
+   my $multibranch = 0;
+   while ($cond->can('branches')) {
+-    $multibranch = $cond->op;
++    $multibranch = $cond->n_branches > 1 && $cond->op;
+     $cond = $cond->branches->[0];
+   }
+   return $cond->as_string() . ($multibranch ? " $multibranch..." : "") ;
+diff --git a/perl-lib/icg2/Account/FilterManager.pm b/perl-lib/icg2/Account/FilterManager.pm
+index fc0812b..8e8a11f 100644
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -4,8 +4,11 @@ use Pobox::Schema;
+ use Pobox::Filter;
+ use Carp 'croak';
+ use Carp::Assert;
++use Data::Dumper;
+ use strict;
+ 
++my($f);
++
+ sub new {
+   my ($class, $schema) = @_;
+   $schema ||= Pobox::Schema->schema;
+@@ -81,11 +84,6 @@ sub filter_hash_key {
+   return join ",", $provid, $actid;
+ }
+ 
+-sub filter_indices {
+-  my $self = shift;
+-  return keys %{$self->filter_hash()};
+-}
+-
+ # return all the filters associated with this account
+ # it's a list of Pobox::Filter objects in the order in which
+ # the filters should be applied
+@@ -172,16 +170,45 @@ sub delete_filter {
+ 
+ sub save_filter {
+   my ($self, $filter) = @_;
++  print $f "  Saving filter ", Dumper($filter->id), "\n"
++    if $f;
+ 
+   return $self->txn_do(
+     sub {
+-      $self->delete_filter($filter);
+       $self->store_rows([$filter->action_rows()], "Action");
+-      $self->store_rows([$filter->condition_rows()], "Condition");
++      my @cond_rows = $filter->condition_rows();
++      die "filter has no conditions; aborting" unless @cond_rows;
++      $self->store_rows(\@cond_rows, "Condition");
+       return 1;
+     });
+ }
+ 
++sub replace_filter {
++  my ($self, $filter) = @_;
++  print $f "  Saving filter ", Dumper($filter->id), "\n"
++    if $f;
++
++  return $self->txn_do(
++    sub {
++      $self->delete_filter($filter);
++      $self->save_filter($filter);
++    });
++}
++
++sub save_filters {
++  my $self = shift;
++  my @filters = @_;
++  my %seen;
++  print $f "Saving " . @_ . " filters.\n" if $f;
++  return $self->txn_do(
++    sub {
++      for my $filter (@filters) {
++        next if $seen{$filter}++;
++        $self->save_filter($filter);
++      }
++    });
++}
++
+ sub reset_filter_provid {
+   my ($self, $filter) = @_;
+ 
+@@ -283,6 +310,79 @@ sub store_rows {
+     });
+ }
+ 
++# the order data is an array of triples
++# each triple contains provid, actid, and desired order.
++# if the desired order is "inactive", the specified filter is deactivated
++# otherwise it is activated and the orders are adjusted.
++#
++# the other order values are numbers; the filters are ordered as
++# indicated by the numbers.  It is an error if any of the numbers are equal
++sub reorder_and_reactivate_filters {
++  my ($self, $order_data) = @_;
++  open $f, ">", "/tmp/reorder.log";
++  { my $ofh = select $f; $| = 1; select $ofh; }
++  print $f "$$ " . scalar(localtime()) . "\n";
++
++  print $f "Order data (input): \n" , Dumper($order_data);
++
++  # Validate and compile filter data
++  my (%od, @modified);
++  for my $triple (@$order_data) {
++    my ($provid, $actid, $order) = @$triple;
++    my $key = $self->filter_hash_key($provid, $actid);
++    my $filter = $self->filter($provid, $actid);
++    if ($order eq "inactive") {
++      $filter->deactivate;
++      print $f "Deactivate $provid,$actid\n";
++      push @modified, $filter;
++    } elsif ($order =~ /\A[1-9]\d*\z/) {
++      if (exists $od{$provid}{$order}) {
++        die "Duplicate order value '$order'";
++      }
++      $od{$provid}{$order} = $filter;
++    } else {
++      die "Unknown filter order value '$order'; should be 'inactive' or a numeral; aborting";
++    }
++  }
++
++  print $f "Order data (output): \n" , Dumper(\%od);
++
++  # Pass through filters, adjusting their orders
++  for my $filters (values %od) {
++    my $actid = 0;
++    for my $order_no (sort {$a <=> $b} keys(%$filters)) {
++      my $filter = $filters->{$order_no};
++      my $key = join ",", $filter->provid, $filter->actid;
++      unless ($filter->is_active && $filter->order() == $actid) {
++        $filter->set_order($actid);
++        $filter->activate();
++        print $f "Filter $key given order $actid\n";
++        push @modified, $filter;
++      }
++      $actid++;
++    }
++  }
++
++  $self->save_filters(@modified);
++}
++
++# return a hash that maps filter keys to some approximation of order numbers
++sub filter_order_hash {
++  my $self = shift;
++  my $filters = $self->filter_hash;
++  my %o;
++  my $i = 1;
++  for my $k (sort keys %$filters) {
++    my $f = $filters->{$k};
++    if (! $f->is_active) {
++      $o{$k} = "inactive";
++    } else {
++      $o{$k} = $i++
++    }
++  }
++  return wantarray ? %o : \%o;
++}
++
+ sub _stored_action_rows {
+   my ($self, $filter) = @_;
+   my ($actid, $provid, $accountid) = $self->_filter_id_components($filter);
+@@ -390,6 +490,19 @@ sub action_to_provision_id {
+   return $provid;
+ }
+ 
++sub deactivate {
++  my ($self, $filter) = @_;
++  $filter->deactivate();
++  $self->save_filter($filter);
++}
++
++sub activate {
++  my ($self, $filter) = @_;
++  $filter->activate();
++  $self->save_filter($filter);
++}
++
++
+ 
+ 1;
+ 
+diff --git a/t/filters/filterManager.t b/t/filters/filterManager.t
+index cfefeb7..1025ec7 100644
+--- a/t/filters/filterManager.t
++++ b/t/filters/filterManager.t
+@@ -1,5 +1,5 @@
+ 
+-use Test::More tests => 21 + (2+4*2) + 2 + 2;
++use Test::More tests => 21 + (1+4*2) + 2 + 2;
+ 
+ use ICG::Test::Util 'inherits_from';
+ use icg2::Account;
+@@ -51,9 +51,6 @@ for my $f (@subfilters) {
+     is_deeply($filters->{"002,$i"}, $subfilters[$i], "filters hash contains expected filter $i");
+     is_deeply($fm->filter("002", $i), $subfilters[$i], "->filter method returns expected filter $i");
+   }
+-
+-  my @k = $fm->filter_indices();
+-  is_deeply([sort @k], \@x_keys, "filter_indices");
+ }
+ 
+ {
