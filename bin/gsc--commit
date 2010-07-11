@@ -1,0 +1,36 @@
+
+die () {
+  echo $1 1>&2 
+  exit 1
+}
+
+# for each commit directory
+for dir in .git/gsc/* ; do
+  # for each hunk file
+  for hunk in "$dir"/* ; do 
+    # git-apply the hunk
+    if git apply "$hunk" ; then
+      :
+    else
+      die "ARRRGH"
+    fi
+
+    # extract the name of the modified file from the hunk file
+    awk 'NR <= 4 && /^\+\+\+ b\// { print }'
+ 
+
+    git add "$file"
+    rm "$hunk"
+  done
+  
+  # record the commit:
+  #   locate the commit message
+  #     (or manufacture one)
+
+  #   git-commit
+  git commit -f "$dir"/COMMITMSG || die "Couldn't commit..."
+  rm -f "$dir"/COMMITMSG
+  rmdir "$dir"
+
+done
+
