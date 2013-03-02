@@ -38,6 +38,8 @@ sub split_patch {
 ################################################################
 #
 # Generic parsing utilities
+#
+# Put these in a module maybe?
 
 sub peek {
   return $_[0]->data->[0];
@@ -53,9 +55,16 @@ sub parse_next {
   my ($self, $pat, $exception) = @_;
   my $next = $self->peek;
   $exception //= qq{Next line '$next' didn't match /$pat/};
-  my $res = $self->match_regex($next, $pat, $exception);
+  my @res = $self->match_regex($next, $pat, $exception);
+
   $self->pull;
-  return $res;
+  if (wantarray()) {
+    return @res;
+  } elsif (@res == 1) {
+    return $res[0];
+  } else {
+    croak "Pattern /$pat/ in scalar context";
+  }
 }
 
 # If this text matches that pattern good
@@ -63,7 +72,7 @@ sub parse_next {
 sub match_regex {
   my ($self, $text, $pat, $exception) = @_;
   if (my @a = ($text =~ $pat)) {
-    return \@a;
+    return @a;
   } elsif ($exception) {
     die $exception;
   } else {
@@ -98,7 +107,7 @@ has commit => (
   lazy => 1,
   default => sub {
     my ($self) = @_;
-    $self->parse_next(qr/\A commit [ ] ([0-9a-f]{40}) \z /x)->[0];
+    $self->parse_next(qr/\A commit [ ] ([0-9a-f]{40}) \z /x);
   },
 );
 
@@ -123,7 +132,7 @@ sub parse_header {
   my @lines;
   until ($self->next_line_is_blank) {
     push @lines,
-      $self->parse_next(qr/ \A (\w+) : \s+ (.*) \z /x);
+      [ $self->parse_next(qr/ \A (\w+) : \s+ (.*) \z /x) ];
   }
   $self->pull; # Discard the blank line that follows the header
   return \@lines;
@@ -172,7 +181,7 @@ has subject => (
 
 sub _build_subject {
   my ($self) = @_;
-  my ($subj) = $self->parse_next(qr/ \A [ ]{4} (.*) \z /x)->[0];
+  my ($subj) = $self->parse_next(qr/ \A [ ]{4} (.*) \z /x);
   $self->pull_blank_line("Saw '%s' instead of blank line after commit subject line");
   return $subj;
 }
