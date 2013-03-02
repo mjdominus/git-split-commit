@@ -1,12 +1,15 @@
 package MJD::GitUtil::ParsePatch;
 use base 'Exporter';
 our @EXPORT = qw(split_patch);
-use Scalar::Util qw(reftype);
+
+use File::Slurp;
 use Moo;
+use Scalar::Util qw(reftype);
 
 has patch => (
   is => 'ro',
   required => 1,
+  isa => sub { defined $_[0] },
 );
 
 has data => (
@@ -16,6 +19,11 @@ has data => (
   lazy => 1,
   builder => '_build_data',
 );
+
+sub _build_data {
+  my ($self) = @_;
+  return [ read_file($self->patch) ];
+}
 
 sub split_patch {
   my $self = shift;
