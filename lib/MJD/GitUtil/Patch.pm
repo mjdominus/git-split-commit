@@ -15,15 +15,9 @@ has file => (
 has data => (
   is => 'rw',
   isa => sub { reftype $_[0] eq "ARRAY" },
-  init_arg => undef,
   lazy => 1,
-  builder => '_build_data',
+  default => sub { [ read_file($_[0]->file, chomp => 1) ] },
 );
-
-sub _build_data {
-  my ($self) = @_;
-  return [ read_file($self->file) ];
-}
 
 sub split_patch {
   my $self = shift;
@@ -32,6 +26,10 @@ sub split_patch {
   $self->parse_commit_message;
   $self->parse_multiple_files;
 }
+
+################################################################
+#
+# Generic parsing utilities
 
 sub peek {
   return $_[0]->data->[0];
