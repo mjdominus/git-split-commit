@@ -2,6 +2,7 @@ package MJD::GitUtil::ParsePatch;
 use base 'Exporter';
 our @EXPORT = qw(split_patch);
 
+use Carp qw(croak);
 use File::Slurp;
 use Moo;
 use Scalar::Util qw(reftype);
@@ -39,14 +40,51 @@ sub pull {
   shift @{$_[0]->data};
 }
 
+# if the next line matches the specified regex, return the result
+# otherwise die.
+sub parse_next {
+  my ($self, $pat, $exception) = @_;
+  my $next = $self->peek;
+  $exception //= qq{Next line '$next' didn't match /$pat/};
+  my $res = $self->match_regex($next, $pat, $exception);
+  $self->pull;
+  return $res;
+}
+
+# If this text matches that pattern good
+# other
 sub match_regex {
-  my ($self, $pat) = @_;
-  if (my @a = ($self->peek =~ /$pat/)) {
+  my ($self, $text, $pat, $exception) = @_;
+  if (my @a = ($text =~ $pat)) {
+    $self->pull;
+    return \@a;
+  } elsif ($exception) {
+    die $exception;
+  } else {
+    croak "Text '$text' didn't match /$pat/";
   }
 }
 
+################################################################
+#
+# commit lines
+
+sub commit_line {
+  join " ", "commit", $_[0]->commit;
+}
+
+has commit => (
+  is => 'rw',
+  lazy => 1,
+  default => sub {
+    my ($self) = @_;
+    $self->parse_next(qr/\A commit [ ] ([0-9a-f]{40}) \z /x)->[0];
+  },
+);
+
 sub parse_commit_line {
-  
+  my ($self) = @_;
+  return $self->commit;
 }
 
 sub parse_header {
