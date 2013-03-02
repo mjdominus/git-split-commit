@@ -19,9 +19,6 @@ has p => (
   },
 );
 
-sub setup_p {
-};
-
 after run_test => sub {
   $_[0]->reset_p;
 };
@@ -30,7 +27,7 @@ test "basic" => sub {
   my ($self) = @_;
   ok($self->p, "built patch object");
   is(reftype($self->p->data), "ARRAY", "got data lines");
-  is(@{$self->p->data}, 52, "data line count");
+  is(@{$self->p->data}, 56, "data line count");
 
   is($self->p->peek,
      "commit b9648f3e0f3f6fbddb9332e6dfcc5b6c57d8bf33",

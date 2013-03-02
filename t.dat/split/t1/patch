@@ -3,6 +3,10 @@ Author: Mark Dominus <mjd@icgroup.com>
 Date:   Fri May 14 17:39:43 2010 -0400
 
     end-of-week megapatch
+    
+    all sorts of stupid changes
+    
+    including some that should not have been made
 
 diff --git a/perl-lib/Pobox/Filter/Web/FilterForm.pm b/perl-lib/Pobox/Filter/Web/FilterForm.pm
 index f93faa5..98d30bc 100644
