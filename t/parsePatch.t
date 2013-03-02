@@ -13,7 +13,7 @@ has p => (
   lazy => 1,
   clearer => 'reset_p',
   default => sub {
-    MJD::GitUtil::ParsePatch->new({
+    MJD::GitUtil::Patch->new({
       file => $file,
     });
   },

@@ -1,4 +1,4 @@
-package MJD::GitUtil::ParsePatch;
+package MJD::GitUtil::Patch;
 use base 'Exporter';
 our @EXPORT = qw(split_patch);
 
