@@ -6,7 +6,7 @@ use File::Slurp;
 use Moo;
 use Scalar::Util qw(reftype);
 
-has patch => (
+has file => (
   is => 'ro',
   required => 1,
   isa => sub { defined $_[0] },
@@ -22,7 +22,7 @@ has data => (
 
 sub _build_data {
   my ($self) = @_;
-  return [ read_file($self->patch) ];
+  return [ read_file($self->file) ];
 }
 
 sub split_patch {
