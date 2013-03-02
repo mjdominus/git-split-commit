@@ -76,6 +76,15 @@ sub next_line_is_blank {
   $self->peek =~ /\A \s* \z/x;
 }
 
+sub pull_blank_line {
+  my $self = shift;
+  my ($msg) = shift // "Expected blank line";
+  croak sprintf($msg, $self->peek)
+    unless $self->next_line_is_blank;
+  $self->pull;
+  return 1;
+}
+
 ################################################################
 #
 # commit lines
@@ -116,6 +125,7 @@ sub parse_header {
     push @lines,
       $self->parse_next(qr/ \A (\w+) : \s+ (.*) \z /x);
   }
+  $self->pull; # Discard the blank line that follows the header
   return \@lines;
 }
 
@@ -154,7 +164,51 @@ sub _build_date {
 #
 # commit message
 
+has subject => (
+  is => 'rw',
+  lazy => 1,
+  builder => '_build_subject',
+);
+
+sub _build_subject {
+  my ($self) = @_;
+  my ($subj) = $self->parse_next(qr/ \A [ ]{4} (.*) \z /x)->[0];
+  $self->pull_blank_line("Saw '%s' instead of blank line after commit subject line");
+  return $subj;
+}
+
+has body => (
+  is => 'rw',
+  isa => ref_of_type('array'),
+  lazy => 1,
+  builder => '_build_body',
+);
+
+sub _build_body {
+  my ($self) = @_;
+  my @body;
+  while ($self->peek =~ /^[ ]{4}/) {
+    push @body, $self->pull;
+  }
+  $self->pull_blank_line("Saw '%s' instead of blank line after commit message body");
+  s/^[ ]{4}// for @body;
+  return \@body;
+}
+
+sub message {
+  my ($self) = @_;
+  return join "\n", $self->subject, "", @{$self->body}, "";
+}
+
 sub parse_commit_message {
+  my ($self) = @_;
+  my @lines;
+  until ($self->next_line_is_blank) {
+    push @lines,
+      $self->parse_next(qr/ \A (\w+) : \s+ (.*) \z /x);
+  }
+  $self->pull; # Discard the blank line that follows the header
+  return \@lines;
 }
 
 sub parse_multiple_files {

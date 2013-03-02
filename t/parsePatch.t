@@ -73,6 +73,20 @@ test "parsing" => sub {
                                     ),
        "date parsing");
       }
+
+    isnt($self->p->peek, "", "ready to read commit message");
+  };
+
+  subtest "message" => sub {
+    my ($s, $b) = (
+      "end-of-week megapatch",
+      ["all sorts of stupid changes", "",
+       "including some that should not have been made"]);
+    is($self->p->subject, $s, "message subject");
+    is_deeply($self->p->body, $b, "message body");
+    is($self->p->message,
+       join("\n", $s, "", @$b, ""),
+       "complete message");
   };
 };
 
