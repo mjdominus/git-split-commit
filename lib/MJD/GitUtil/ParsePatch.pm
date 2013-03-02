@@ -1,21 +1,21 @@
-package MJD::GitUtil::SplitPatch;
+package MJD::GitUtil::ParsePatch;
 use base 'Exporter';
 our @EXPORT = qw(split_patch);
+use Scalar::Util qw(reftype);
+use Moo;
 
-sub new {
-  my $class = shift;
-  my $patch = shift;
-  my $self = bless {} => $class;
-  $self->set_patch($patch);
-  return $self;
-}
+has patch => (
+  is => 'ro',
+  required => 1,
+);
 
-sub set_patch {
-  my ($self, $patch) = @_;
-  $self->{ORIG_PATCH} = $patch;
-  $self->{D} = [ @$patch ];
-  return $self;
-}
+has data => (
+  is => 'rw',
+  isa => sub { reftype $_[0] eq "ARRAY" },
+  init_arg => undef,
+  lazy => 1,
+  builder => '_build_data',
+);
 
 sub split_patch {
   my $self = shift;
@@ -26,11 +26,11 @@ sub split_patch {
 }
 
 sub peek {
-  return $_[0]{D}[0];
+  return $_[0]->data->[0];
 }
 
 sub pull {
-  shift @{$_[0]{D}};
+  shift @{$_[0]->data};
 }
 
 sub match_regex {
