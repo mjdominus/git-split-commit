@@ -1,3 +1,5 @@
+use DateTime;
+use Test::Deep;
 use Test::More;
 use Test::Routine;
 use Test::Routine::Util;
@@ -53,6 +55,27 @@ test "parsing" => sub {
     is($self->p->commit,
        "b9648f3e0f3f6fbddb9332e6dfcc5b6c57d8bf33",
        "commit hash");
+    like($self->p->peek, qr/^Author:/, "ready to read header");
+  };
+
+  subtest "header" => sub {
+    is_deeply($self->p->header_hash,
+              { author => 'Mark Dominus <mjd@icgroup.com>',
+                date => "Fri May 14 17:39:43 2010 -0400",
+              },
+              "patch header");
+    TODO: {
+        local $TODO = "Fucking time zones, how do they work?";
+    is($self->p->date, DateTime->new( year   => 2010,
+                                      month  => 5,
+                                      day    => 14,
+                                      hour   => 17,
+                                      minute => 39,
+                                      second => 32,
+                                      time_zone => 'America/New_York',
+                                    ),
+       "date parsing");
+      }
   };
 };
 

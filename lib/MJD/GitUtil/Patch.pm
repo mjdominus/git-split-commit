@@ -3,6 +3,8 @@ use base 'Exporter';
 our @EXPORT = qw(split_patch);
 
 use Carp qw(croak);
+use Date::Parse ();
+use DateTime;
 use File::Slurp;
 use Moo;
 use Scalar::Util qw(reftype);
@@ -15,10 +17,15 @@ has file => (
 
 has data => (
   is => 'rw',
-  isa => sub { reftype $_[0] eq "ARRAY" },
+  isa => ref_of_type("array"),
   lazy => 1,
   default => sub { [ read_file($_[0]->file, chomp => 1) ] },
 );
+
+sub ref_of_type {
+  my ($reftype) = @_;
+  return sub { reftype $_[0] eq uc($reftype) };
+}
 
 sub split_patch {
   my $self = shift;
@@ -56,13 +63,17 @@ sub parse_next {
 sub match_regex {
   my ($self, $text, $pat, $exception) = @_;
   if (my @a = ($text =~ $pat)) {
-    $self->pull;
     return \@a;
   } elsif ($exception) {
     die $exception;
   } else {
     croak "Text '$text' didn't match /$pat/";
   }
+}
+
+sub next_line_is_blank {
+  my ($self) = @_;
+  $self->peek =~ /\A \s* \z/x;
 }
 
 ################################################################
@@ -87,8 +98,61 @@ sub parse_commit_line {
   return $self->commit;
 }
 
+################################################################
+#
+# headers
+
+has header_array => (
+  is => 'rw',
+  isa => ref_of_type("array"),
+  lazy => 1,
+  builder => 'parse_header',
+);
+
 sub parse_header {
+  my ($self) = @_;
+  my @lines;
+  until ($self->next_line_is_blank) {
+    push @lines,
+      $self->parse_next(qr/ \A (\w+) : \s+ (.*) \z /x);
+  }
+  return \@lines;
 }
+
+has header_hash => (
+  is => 'rw',
+  isa => ref_of_type("hash"),
+  lazy => 1,
+  builder => 'header_to_hash',
+);
+
+sub header_to_hash {
+  my ($self) = @_;
+  my %h;
+  for my $field (@{$self->header_array}) {
+    my ($k, $v) = @$field;
+    $h{lc $k} = $v;
+  }
+  return \%h;
+}
+
+has date => (
+  is => 'rw',
+#  isa => DateTime
+  lazy => 1,
+  builder => '_build_date',
+);
+
+sub _build_date {
+  my $z = $_[0]->header_hash->{date};
+  return DateTime->from_epoch(
+    epoch =>
+      Date::Parse::str2time( $_[0]->header_hash->{date} )) ;
+}
+
+################################################################
+#
+# commit message
 
 sub parse_commit_message {
 }
