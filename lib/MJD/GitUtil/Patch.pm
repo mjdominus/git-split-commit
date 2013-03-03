@@ -8,6 +8,7 @@ use DateTime;
 use File::Slurp;
 use Moo;
 use Scalar::Util qw(reftype);
+use MJD::GitUtil::Patch::File;
 
 has file => (
   is => 'ro',
@@ -92,6 +93,11 @@ sub pull_blank_line {
     unless $self->next_line_is_blank;
   $self->pull;
   return 1;
+}
+
+sub at_eof {
+  my ($self) = @_;
+  @{$self->data} == 0;
 }
 
 ################################################################
@@ -220,16 +226,140 @@ sub parse_commit_message {
   return \@lines;
 }
 
-sub parse_multiple_files {
-  my $self = shift;
-  $self->parse_file || $self->parse_eof || $self->error();
+################################################################
+#
+# diffs to a bunch of files
+
+has _file_array => (
+  is => 'rw',
+  isa => ref_of_type('array'),
+  lazy => 1,
+  builder => '_build_files',
+);
+
+sub files {
+  my ($self) = @_;
+  my $files = $self->_file_array;
+  return wantarray() ? @$files : $files;
 }
+
+sub _build_files {
+  my ($self) = @_;
+  my @files;
+  until ($self->at_eof) {
+    push @files, $self->parse_file;
+  }
+  return \@files;
+}
+
+################################################################
+#
+# diffs to a single file
 
 sub parse_file {
+  my ($self) = @_;
+
+  my ($p1, $p2, $path) = $self->parse_diff_line;
+  my ($h1, $h2, $mode) = $self->parse_index_line;
+  $self->check_mmmppp($p1, $p2);
+
+  my @chunk;
+  while (! $self->at_eof && $self->peek =~ /^\@\@ /) {
+    push @chunk, $self->parse_chunk();
+  }
+
+  return $self->file_factory->new({
+    path => $path,
+    shas => [ $h1, $h2 ],
+    dpaths => [ $p1, $p2 ],
+    mode => $mode,
+    chunks => \@chunk,
+  });
 }
 
-sub parse_eof {
-  return @{$_[0]{D}} == 0;
+has file_factory => (
+  is => 'ro',
+  default => sub { "MJD::GitUtil::Patch::File" },
+);
+
+sub parse_diff_line {
+  my ($self) = @_;
+
+  my ($from, $to) = $self->parse_next(qr/ \A diff [ ] --git [ ]
+                                          (\S+) [ ] (\S+) \z /x);
+  my $path;
+
+  if (my ($pa) = $from =~ m{^a/(.*)} and
+      my ($pb) = $to   =~ m{^b/(.*)}) {
+    $path = $pa if $pa eq $pb;
+  }
+
+  return ($from, $to, $path);
+}
+
+sub parse_index_line {
+  my ($self) = @_;
+  my ($h1, $h2, $mode) =
+    $self->parse_next(qr/ \A index [ ]
+                          ([0-9a-f]{7}) \.\. ([0-9a-f]{7}) [ ]
+                          (\d{6}) \z
+                        /x);
+
+  return ($h1, $h2, $mode);
+}
+
+sub check_mmmppp {
+    my ($self, $p1, $p2) = @_;
+
+    my ($q1) = $self->parse_next(qr/ \A ---    [ ] (.*) \z /x);
+    $q1 eq $p1
+	or die sprintf "expected '--- %s', saw '%s' instead", $p1, $self->peek;
+
+    my ($q2) = $self->parse_next(qr/ \A \+\+\+ [ ] (.*) \z /x);
+    $q2 eq $p2
+	or die sprintf "expected '--- %s', saw '%s' instead", $p2, $self->peek;
+
+    return 1;
+}
+
+sub parse_chunk {
+  my ($self) = @_;
+  # l1 is the location of this chunk in the original file
+  # q1 is the length of the chunk in the original file
+  # l2 is the location of the chunk in the resulting file
+  # q2 is the length of the chunk in the resulting file
+  my ($l1, $q1, $l2, $q2, $loc) =
+    $self->parse_next(qr/ \A \@\@          [ ]
+                           - (\d+) , (\d+) [ ]
+                          \+ (\d+) , (\d+) [ ]
+                             \@\@          [ ] (.*) \z
+                        /x);
+
+  # Number of total lines we have seen so far from original and resulting
+  # files, respectively; when $r1 == $q1 and $r2 == $q2, we have them all.
+  my ($r1, $r2) = (0, 0);
+
+  my @lines;
+  while ($r1 < $q1 || $r2 < $q2) {
+    my $line = $self->pull;
+    my ($init) = substr($line, 0, 1);
+    if ($init eq " ") {
+      $r1++; $r2++;
+    } elsif ($init eq "+") {
+      $r2++;
+    } elsif ($init eq "-") {
+      $r1++;
+    }
+    if ($r1 > $q1 || $r2 > $q2) {
+      die sprintf "Couldn't parse patch; line '%s' made %s file too long",
+        $line, $r1 > $q1 ? "original" : "resulting";
+    }
+    push @lines, $line;
+  }
+
+  # later return something that at least includes the $loc,
+  # probably some sort of container object
+  return \@lines;
 }
 
 1;

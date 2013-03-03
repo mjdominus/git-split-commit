@@ -87,6 +87,16 @@ test "parsing" => sub {
     is($self->p->message,
        join("\n", $s, "", @$b, ""),
        "complete message");
+    like($self->p->peek,
+         qr/^diff --git a/,
+         "ready to read file");
+  };
+
+  subtest "files" => sub {
+    my $file1 = $self->p->parse_file;
+    pass("read a file");
+    my @files = $self->p->files;
+    is(@files, 2, "found two more files");
   };
 };
 
