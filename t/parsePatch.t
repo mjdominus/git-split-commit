@@ -15,6 +15,7 @@ has p => (
   default => sub {
     MJD::GitUtil::Patch->new({
       file => $file,
+      no_parse => 1,
     });
   },
 );
@@ -98,6 +99,16 @@ test "parsing" => sub {
     my @files = $self->p->files;
     is(@files, 2, "found two more files");
   };
+};
+
+test "entire file" => sub {
+  my ($self) = @_;
+  $self->p->parse_patch;
+  my @file = $self->p->files;
+  is(@file, 3, "found three files");
+  for my $i (0..2) {
+    is($file[$i]->num_chunks, 1, "file $i has one chunk");
+  }
 };
 
 

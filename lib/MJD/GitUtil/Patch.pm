@@ -28,12 +28,22 @@ sub ref_of_type {
   return sub { reftype $_[0] eq uc($reftype) };
 }
 
-sub split_patch {
-  my $self = shift;
-  $self->parse_commit_line;
-  $self->parse_header;
-  $self->parse_commit_message;
-  $self->parse_multiple_files;
+has no_parse => (
+  is => 'ro',
+);
+
+sub BUILD {
+  my ($self) = @_;
+  $self->parse_patch unless $self->no_parse;
+}
+
+sub parse_patch {
+  my ($self) = @_;
+
+  $self->commit_line;
+  $self->header_hash;
+  $self->message;
+  $self->files;
 }
 
 ################################################################
