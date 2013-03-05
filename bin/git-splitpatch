@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+
+use Getopt::Std;
+use MJD::GitUtil qw(split_patch);
+
+my %opt = (v => 0, d => '.');
+getopts('d:v', \%opt) or usage();
+@ARGV or usage();
+
+my @result_files;
+push @result_files, split_patch($_, $opt{d})
+  for @ARGV;
+
+print join "\n", @result_files, ""
+  if $opt{v};
+
