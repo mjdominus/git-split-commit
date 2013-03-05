@@ -345,10 +345,10 @@ sub parse_chunk {
   # l2 is the location of the chunk in the resulting file
   # q2 is the length of the chunk in the resulting file
   my ($l1, $q1, $l2, $q2, $loc) =
-    $self->parse_next(qr/ \A \@\@          [ ]
-                           - (\d+) , (\d+) [ ]
-                          \+ (\d+) , (\d+) [ ]
-                             \@\@          [ ] (.*) \z
+    $self->parse_next(qr/ \A \@\@               [ ]
+                           - (\d+) , (\d+)      [ ]
+                          \+ (\d+) , (\d+)      [ ]
+                             \@\@          (?:  [ ] (.*) )? \z
                         /x);
 
   # Number of total lines we have seen so far from original and resulting

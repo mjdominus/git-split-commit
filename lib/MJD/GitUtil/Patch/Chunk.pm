@@ -10,10 +10,11 @@ has blen => ( is => 'ro' );
 
 sub descriptor {
   my ($c) = @_;
-  sprintf "\@\@ -%d,%d +%d,%d \@\@ %s",
+  my $desc = sprintf "\@\@ -%d,%d +%d,%d \@\@",
     $c->apos, $c->alen,
-    $c->bpos, $c->blen,
-    $c->loc;
+    $c->bpos, $c->blen;
+  $desc .= " " . $c->loc
+    if defined $c->loc;
 }
 
 1;
