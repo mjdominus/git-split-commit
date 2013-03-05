@@ -20,9 +20,8 @@ for my $subdir (readdir D) {
   is_deeply([sort @a_res], [sort @r_res], "$subdir: return from split_patch");
   is_deeply([sort @a_res], [sort @x_res], "$subdir: expected files");
   for my $file (@x_res) {
-    ok(compare($file, "../x/$file") == 0, "$subdir/$file");
+    ok(compare($file, "../x/$file") == 0, "$subdir/$file contents");
   }
-  unlink @a_res;
+  unlink @a_res unless $ENV{LEAVE_TEMP_FILES};
   chdir ".." or die "cd ..: $!";
 }
-
