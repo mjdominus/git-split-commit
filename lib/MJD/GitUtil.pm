@@ -11,7 +11,7 @@ sub split_patch {
   for my $file ($patch->files) {
     my $orig_path = $file->path;
     (my $chunk_path = $orig_path) =~ s{/}{::}g;
-    for my $chunk ($file->chunks) {
+    for my $chunk (@{$file->chunks}) {
       my $seqno = ++$seqno{$chunk_path};
       my $file = "$chunk_path-$seqno";
       $file = "$dir/$file" if defined $dir;
@@ -31,7 +31,9 @@ sub write_chunk {
   print $f "--- a/$path\n";
   print $f "+++ b/$path\n";
 
-  print $f map("$_\n", @{$chunk});
+  print $f $chunk->descriptor, "\n";
+
+  print $f map "$_\n", @{$chunk->lines};
 }
 
 1;

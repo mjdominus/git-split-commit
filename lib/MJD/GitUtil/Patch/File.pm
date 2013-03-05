@@ -5,7 +5,9 @@ has path => ( is => 'ro' );
 has shas => ( is => 'ro' );
 has dpaths => ( is => 'ro' );
 has mode => ( is => 'ro' );
-has chunks => ( is => 'ro' );
+has chunks => ( is => 'ro',
+                default => sub { [] }
+              );
 
 sub num_chunks {
   my ($self) = @_;

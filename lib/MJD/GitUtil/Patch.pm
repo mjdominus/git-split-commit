@@ -9,6 +9,7 @@ use File::Slurp;
 use Moo;
 use Scalar::Util qw(reftype);
 use MJD::GitUtil::Patch::File;
+use MJD::GitUtil::Patch::Chunk;
 
 has file => (
   is => 'ro',
@@ -332,6 +333,11 @@ sub check_mmmppp {
     return 1;
 }
 
+has chunk_factory => (
+  is => 'ro',
+  default => sub { "MJD::GitUtil::Patch::Chunk" },
+);
+
 sub parse_chunk {
   my ($self) = @_;
   # l1 is the location of this chunk in the original file
@@ -367,9 +373,14 @@ sub parse_chunk {
     push @lines, $line;
   }
 
-  # later return something that at least includes the $loc,
-  # probably some sort of container object
-  return \@lines;
+  return $self->chunk_factory->new(
+    lines => \@lines,
+    loc => $loc,
+    apos => $l1,
+    bpos => $l2,
+    alen => $q1,
+    blen => $q2,
+  );
 }
 
 1;
