@@ -43,7 +43,8 @@ sub parse_patch {
 
   $self->commit_line;
   $self->header_hash;
-  $self->message;
+  $self->subject;
+  $self->body;
   $self->files;
 }
 
@@ -205,7 +206,7 @@ sub _build_subject {
 
 has body => (
   is => 'rw',
-  isa => ref_of_type('array'),
+  isa => sub { !defined($_[0]) || ref_of_type('array')->($_[0]) },
   lazy => 1,
   builder => '_build_body',
 );
@@ -213,6 +214,8 @@ has body => (
 sub _build_body {
   my ($self) = @_;
   my @body;
+  return unless $self->peek =~ /^[ ]{4}/; # No body
+
   while ($self->peek =~ /^[ ]{4}/) {
     push @body, $self->pull;
   }
@@ -223,7 +226,11 @@ sub _build_body {
 
 sub message {
   my ($self) = @_;
-  return join "\n", $self->subject, "", @{$self->body}, "";
+  if (defined $self->body) {
+    return join "\n", $self->subject, "", @{$self->body}, "";
+  } else {
+    return join "\n", $self->subject, "";
+  }
 }
 
 sub parse_commit_message {
