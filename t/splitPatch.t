@@ -23,5 +23,5 @@ for my $subdir (readdir D) {
     ok(compare($file, "../x/$file") == 0, "$subdir/$file contents");
   }
   unlink @a_res unless $ENV{LEAVE_TEMP_FILES};
-  chdir ".." or die "cd ..: $!";
+  chdir "../.." or die "cd ../..: $!";
 }
