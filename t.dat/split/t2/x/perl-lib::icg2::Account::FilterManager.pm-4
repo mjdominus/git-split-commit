@@ -1,0 +1,82 @@
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -283,6 +310,79 @@ sub store_rows {
+     });
+ }
+ 
++# the order data is an array of triples
++# each triple contains provid, actid, and desired order.
++# if the desired order is "inactive", the specified filter is deactivated
++# otherwise it is activated and the orders are adjusted.
++#
++# the other order values are numbers; the filters are ordered as
++# indicated by the numbers.  It is an error if any of the numbers are equal
++sub reorder_and_reactivate_filters {
++  my ($self, $order_data) = @_;
++  open $f, ">", "/tmp/reorder.log";
++  { my $ofh = select $f; $| = 1; select $ofh; }
++  print $f "$$ " . scalar(localtime()) . "\n";
++
++  print $f "Order data (input): \n" , Dumper($order_data);
++
++  # Validate and compile filter data
++  my (%od, @modified);
++  for my $triple (@$order_data) {
++    my ($provid, $actid, $order) = @$triple;
++    my $key = $self->filter_hash_key($provid, $actid);
++    my $filter = $self->filter($provid, $actid);
++    if ($order eq "inactive") {
++      $filter->deactivate;
++      print $f "Deactivate $provid,$actid\n";
++      push @modified, $filter;
++    } elsif ($order =~ /\A[1-9]\d*\z/) {
++      if (exists $od{$provid}{$order}) {
++        die "Duplicate order value '$order'";
++      }
++      $od{$provid}{$order} = $filter;
++    } else {
++      die "Unknown filter order value '$order'; should be 'inactive' or a numeral; aborting";
++    }
++  }
++
++  print $f "Order data (output): \n" , Dumper(\%od);
++
++  # Pass through filters, adjusting their orders
++  for my $filters (values %od) {
++    my $actid = 0;
++    for my $order_no (sort {$a <=> $b} keys(%$filters)) {
++      my $filter = $filters->{$order_no};
++      my $key = join ",", $filter->provid, $filter->actid;
++      unless ($filter->is_active && $filter->order() == $actid) {
++        $filter->set_order($actid);
++        $filter->activate();
++        print $f "Filter $key given order $actid\n";
++        push @modified, $filter;
++      }
++      $actid++;
++    }
++  }
++
++  $self->save_filters(@modified);
++}
++
++# return a hash that maps filter keys to some approximation of order numbers
++sub filter_order_hash {
++  my $self = shift;
++  my $filters = $self->filter_hash;
++  my %o;
++  my $i = 1;
++  for my $k (sort keys %$filters) {
++    my $f = $filters->{$k};
++    if (! $f->is_active) {
++      $o{$k} = "inactive";
++    } else {
++      $o{$k} = $i++
++    }
++  }
++  return wantarray ? %o : \%o;
++}
++
+ sub _stored_action_rows {
+   my ($self, $filter) = @_;
+   my ($actid, $provid, $accountid) = $self->_filter_id_components($filter);

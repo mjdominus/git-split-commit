@@ -17,12 +17,11 @@ for my $subdir (readdir D) {
   my @r_res = split_patch("../patch");
   my @a_res = <*>;
   my @x_res = map basename($_), <../x/*>;
-  is_deeply([sort @r_res], [sort @a_res], "$subdir: return from split_patch");
-  is_deeply([sort @x_res], [sort @a_res], "$subdir: expected files");
+  is_deeply([sort @a_res], [sort @r_res], "$subdir: return from split_patch");
+  is_deeply([sort @a_res], [sort @x_res], "$subdir: expected files");
   for my $file (@x_res) {
-    ok(compare($file, "../x/$file") == 0, "$subdir/$file");
+    ok(compare($file, "../x/$file") == 0, "$subdir/$file contents");
   }
-  unlink @a_res;
-  chdir ".." or die "cd ..: $!";
+  unlink @a_res unless $ENV{LEAVE_TEMP_FILES};
+  chdir "../.." or die "cd ../..: $!";
 }
-

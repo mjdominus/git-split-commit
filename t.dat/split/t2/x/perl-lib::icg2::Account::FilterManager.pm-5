@@ -1,0 +1,22 @@
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -390,6 +490,19 @@ sub action_to_provision_id {
+   return $provid;
+ }
+ 
++sub deactivate {
++  my ($self, $filter) = @_;
++  $filter->deactivate();
++  $self->save_filter($filter);
++}
++
++sub activate {
++  my ($self, $filter) = @_;
++  $filter->activate();
++  $self->save_filter($filter);
++}
++
++
+ 
+ 1;
+ 

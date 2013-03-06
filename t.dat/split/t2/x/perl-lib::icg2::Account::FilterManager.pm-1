@@ -1,0 +1,14 @@
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -4,8 +4,11 @@ use Pobox::Schema;
+ use Pobox::Filter;
+ use Carp 'croak';
+ use Carp::Assert;
++use Data::Dumper;
+ use strict;
+ 
++my($f);
++
+ sub new {
+   my ($class, $schema) = @_;
+   $schema ||= Pobox::Schema->schema;

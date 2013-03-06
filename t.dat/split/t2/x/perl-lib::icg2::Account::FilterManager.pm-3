@@ -1,0 +1,50 @@
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -172,16 +170,45 @@ sub delete_filter {
+ 
+ sub save_filter {
+   my ($self, $filter) = @_;
++  print $f "  Saving filter ", Dumper($filter->id), "\n"
++    if $f;
+ 
+   return $self->txn_do(
+     sub {
+-      $self->delete_filter($filter);
+       $self->store_rows([$filter->action_rows()], "Action");
+-      $self->store_rows([$filter->condition_rows()], "Condition");
++      my @cond_rows = $filter->condition_rows();
++      die "filter has no conditions; aborting" unless @cond_rows;
++      $self->store_rows(\@cond_rows, "Condition");
+       return 1;
+     });
+ }
+ 
++sub replace_filter {
++  my ($self, $filter) = @_;
++  print $f "  Saving filter ", Dumper($filter->id), "\n"
++    if $f;
++
++  return $self->txn_do(
++    sub {
++      $self->delete_filter($filter);
++      $self->save_filter($filter);
++    });
++}
++
++sub save_filters {
++  my $self = shift;
++  my @filters = @_;
++  my %seen;
++  print $f "Saving " . @_ . " filters.\n" if $f;
++  return $self->txn_do(
++    sub {
++      for my $filter (@filters) {
++        next if $seen{$filter}++;
++        $self->save_filter($filter);
++      }
++    });
++}
++
+ sub reset_filter_provid {
+   my ($self, $filter) = @_;
+ 

@@ -1,0 +1,33 @@
+--- a/perl-lib/Pobox/Filter/MHLegacy.pm
++++ b/perl-lib/Pobox/Filter/MHLegacy.pm
+@@ -75,4 +75,30 @@ sub _fixup_rows {
+   }
+ }
+ 
++sub is_active {
++  my $self = shift;
++  return $self->action->is_active;
++}
++
++sub deactivate {
++  my $self = shift;
++  return $self->action->deactivate;
++}
++
++sub activate {
++  my $self = shift;
++  return $self->action->activate;
++}
++
++sub order {
++  my $self = shift;
++  return $self->action->order;
++}
++
++sub set_order {
++  my $self = shift;
++  $self->set_actid(@_);
++  return $self->action->set_order(@_);
++}
++
+ 1;

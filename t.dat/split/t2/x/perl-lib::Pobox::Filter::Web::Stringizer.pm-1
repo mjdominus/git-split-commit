@@ -1,0 +1,11 @@
+--- a/perl-lib/Pobox/Filter/Web/Stringizer.pm
++++ b/perl-lib/Pobox/Filter/Web/Stringizer.pm
+@@ -134,7 +134,7 @@ sub cond_desc {
+   my $cond = $self->condition;
+   my $multibranch = 0;
+   while ($cond->can('branches')) {
+-    $multibranch = $cond->op;
++    $multibranch = $cond->n_branches > 1 && $cond->op;
+     $cond = $cond->branches->[0];
+   }
+   return $cond->as_string() . ($multibranch ? " $multibranch..." : "") ;

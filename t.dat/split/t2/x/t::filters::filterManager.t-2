@@ -1,0 +1,12 @@
+--- a/t/filters/filterManager.t
++++ b/t/filters/filterManager.t
+@@ -51,9 +51,6 @@ for my $f (@subfilters) {
+     is_deeply($filters->{"002,$i"}, $subfilters[$i], "filters hash contains expected filter $i");
+     is_deeply($fm->filter("002", $i), $subfilters[$i], "->filter method returns expected filter $i");
+   }
+-
+-  my @k = $fm->filter_indices();
+-  is_deeply([sort @k], \@x_keys, "filter_indices");
+ }
+ 
+ {
