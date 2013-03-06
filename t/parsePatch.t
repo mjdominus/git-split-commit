@@ -1,10 +1,9 @@
 use DateTime;
-use Test::Deep;
+use Scalar::Util qw();
 use Test::More;
 use Test::Routine;
 use Test::Routine::Util;
 use MJD::GitUtil::Patch;
-use Scalar::Util qw(reftype);
 
 my $file = "t.dat/split/t1/patch";
 
@@ -27,7 +26,7 @@ after run_test => sub {
 test "basic" => sub {
   my ($self) = @_;
   ok($self->p, "built patch object");
-  is(reftype($self->p->data), "ARRAY", "got data lines");
+  is(Scalar::Util::reftype($self->p->data), "ARRAY", "got data lines");
   is(@{$self->p->data}, 56, "data line count");
 
   is($self->p->peek,
