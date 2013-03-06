@@ -25,3 +25,8 @@ for my $subdir (readdir D) {
   unlink @a_res unless $ENV{LEAVE_TEMP_FILES};
   chdir "../.." or die "cd ../..: $!";
 }
+
+# TODO: running splitpatch on a split patch file should be idempotent
+
+# TODO: there should be a -s option to split u pa single chunk into
+# multiple chunks.
