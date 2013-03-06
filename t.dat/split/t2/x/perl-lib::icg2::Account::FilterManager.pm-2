@@ -1,0 +1,14 @@
+--- a/perl-lib/icg2/Account/FilterManager.pm
++++ b/perl-lib/icg2/Account/FilterManager.pm
+@@ -81,11 +84,6 @@ sub filter_hash_key {
+   return join ",", $provid, $actid;
+ }
+ 
+-sub filter_indices {
+-  my $self = shift;
+-  return keys %{$self->filter_hash()};
+-}
+-
+ # return all the filters associated with this account
+ # it's a list of Pobox::Filter objects in the order in which
+ # the filters should be applied

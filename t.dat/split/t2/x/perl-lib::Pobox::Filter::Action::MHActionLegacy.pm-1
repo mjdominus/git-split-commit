@@ -1,0 +1,20 @@
+--- a/perl-lib/Pobox/Filter/Action/MHActionLegacy.pm
++++ b/perl-lib/Pobox/Filter/Action/MHActionLegacy.pm
+@@ -75,4 +75,17 @@ sub rowFactory {
+   return 'Pobox::Schema::Result::Action';
+ }
+ 
++sub is_active {
++  my $self = shift;
++  my $switch = $self->row->switch;
++  return $switch eq "on" ? 1 : $switch eq "off" ? 0 :
++    die "unknown action 'switch' value '$switch'; aborting";
++}
++
++sub deactivate {  $_[0]->row->switch("off"); }
++sub activate {  $_[0]->row->switch("on"); }
++
++sub order { $_[0]->row->actid; }
++sub set_order { $_[0]->row->actid($_[1]); }
++
+ 1;

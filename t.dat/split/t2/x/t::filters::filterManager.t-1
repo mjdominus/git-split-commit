@@ -1,0 +1,9 @@
+--- a/t/filters/filterManager.t
++++ b/t/filters/filterManager.t
+
+ 
+-use Test::More tests => 21 + (2+4*2) + 2 + 2;
++use Test::More tests => 21 + (1+4*2) + 2 + 2;
+ 
+ use ICG::Test::Util 'inherits_from';
+ use icg2::Account;
