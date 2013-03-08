@@ -1,0 +1,26 @@
+commit 8ad1ab64bd43a874306862b515048fec295330e3
+Author: Mark Dominus <mdominus@grantstreet.com>
+Date:   Fri Mar 8 16:44:02 2013 -0500
+
+    start TODO file
+    
+    clean up some old metafiles
+
+diff --git a/FILES b/FILES
+deleted file mode 100755
+index e7e548b..0000000
+--- a/FILES
++++ /dev/null
+@@ -1 +0,0 @@
+-find lib -name '*.pm'
+diff --git a/TODO b/TODO
+new file mode 100644
+index 0000000..fd63ca9
+--- /dev/null
++++ b/TODO
+@@ -0,0 +1,5 @@
++
++Minor issues that I might otherwise forget
++
++* Does parsepatch handle permission changes etc. ?
++
