@@ -4,7 +4,7 @@ use Test::More;
 use Test::Routine;
 use Test::Routine::Util;
 
-my $dir = "t.dat/apply";
+my $HOME = "t.dat/apply";
 
 has _files => (
   is => 'ro',
@@ -12,6 +12,16 @@ has _files => (
 );
 
 sub files { @{$_[0]->_files} }
+
+has reponame => (
+  is => 'ro',
+  default => sub { "testrepo$$" },
+);
+
+sub safe_chdir {
+  my ($self, $dir) = @_;
+  chdir($dir) or die "chdir '$dir': $!";
+}
 
 sub git_command {
   my ($self, $cmd, @args) = @_;
@@ -60,8 +70,9 @@ sub commit {
 
 sub setup_repo {
   my ($self) = @_;
-  chdir($dir) or die "chdir '$dir': $!";
-  $self->git_command("init");
+  $self->safe_chdir($HOME);
+  $self->git_command("init", $self->reponame);
+  $self->safe_chdir($self->reponame);
   $self->add_file("a", [ 1 .. 30 ]);
   $self->add_file("b", [ 1 .. 30 ]);
   $self->commit("initial commit");
@@ -70,8 +81,8 @@ sub setup_repo {
 sub cleanup_repo {
   my ($self) = @_;
   note "cleaning up\n";
-  $self->scrub_files;
-  $self->run_command("rm", "-rf", ".git");
+  $self->safe_chdir("..");
+  $self->run_command("rm", "-rf", $self->reponame);
 }
 
 before run_test => sub {
@@ -92,4 +103,3 @@ run_me;
 done_testing;
 
 1;
-
