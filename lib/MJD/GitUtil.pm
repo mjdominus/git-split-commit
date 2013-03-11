@@ -37,7 +37,8 @@ sub write_chunk {
 }
 
 sub apply_patch {
-  
+  my ($patch) = @_;
+  system(qw(git apply --index), $patch);
 }
 
 1;

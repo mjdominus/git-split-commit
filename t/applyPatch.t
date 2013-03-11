@@ -115,7 +115,7 @@ test "null" => sub {
 
 test "apply" => sub {
   my ($self) = @_;
-  apply_patch("patch");
+  apply_patch("../patch");
   is(count_lines("a"), 15, "removed 15 lines from file a");
   is(count_lines("b"), 10, "added 5 lines to file b");
 };
