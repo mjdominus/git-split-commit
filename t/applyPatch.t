@@ -3,8 +3,10 @@ use Cwd;
 use Test::More;
 use Test::Routine;
 use Test::Routine::Util;
+use MJD::GitUtil qw(apply_patch);
 
 my $HOME = "t.dat/apply";
+__PACKAGE__->safe_chdir($HOME);
 
 has _files => (
   is => 'ro',
@@ -40,6 +42,7 @@ sub run_command {
   } else {
     open STDERR, "|-", "perl", "-lpe", "s/^/#2# /";
     open STDOUT, "|-", "perl", "-lpe", "s/^/#1# /";
+    $| = 1;
     print STDERR "Running: $cmd @args\n";
     exec $cmd, @args;
     exit $?;
@@ -70,19 +73,30 @@ sub commit {
 
 sub setup_repo {
   my ($self) = @_;
-  $self->safe_chdir($HOME);
+  note "initializing repo\n";
   $self->git_command("init", $self->reponame);
   $self->safe_chdir($self->reponame);
   $self->add_file("a", [ 1 .. 30 ]);
-  $self->add_file("b", [ 1 .. 30 ]);
+  $self->add_file("b", [ 1 .. 5 ]);
   $self->commit("initial commit");
+  note "repo initialized\n";
 }
 
 sub cleanup_repo {
   my ($self) = @_;
   note "cleaning up\n";
   $self->safe_chdir("..");
+  return if $ENV{DO_NOT_CLEAN_UP};
   $self->run_command("rm", "-rf", $self->reponame);
+}
+
+sub count_lines {
+  my ($file) = @_;
+  open my ($f), "<", $file
+    or die "Couldn't open file '$file': $!";
+  my $n = 0;
+  ++$n while <$f>;
+  return $n;
 }
 
 before run_test => sub {
@@ -97,6 +111,13 @@ after run_test => sub {
 
 test "null" => sub {
   pass("okay");
+};
+
+test "apply" => sub {
+  my ($self) = @_;
+  apply_patch("patch");
+  is(count_lines("a"), 15, "removed 15 lines from file a");
+  is(count_lines("b"), 10, "added 5 lines to file b");
 };
 
 run_me;

@@ -1,6 +1,6 @@
 package MJD::GitUtil;
 use base 'Exporter';
-our @EXPORT_OK = qw(split_patch);
+our @EXPORT_OK = qw(split_patch apply_patch);
 use MJD::GitUtil::Patch;
 
 sub split_patch {
@@ -34,6 +34,10 @@ sub write_chunk {
   print $f $chunk->descriptor, "\n";
 
   print $f map "$_\n", @{$chunk->lines};
+}
+
+sub apply_patch {
+  
 }
 
 1;
