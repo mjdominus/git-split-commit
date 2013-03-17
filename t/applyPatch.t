@@ -71,6 +71,12 @@ sub commit {
   $self->git_command("commit", "-m", $message);
 }
 
+sub count_commits {
+  my ($self) = @_;
+  my @lines = qx{git log --oneline};
+  return 0+@lines;
+}
+
 sub setup_repo {
   my ($self) = @_;
   note "initializing repo\n";
@@ -110,14 +116,17 @@ after run_test => sub {
 };
 
 test "null" => sub {
-  pass("okay");
+  is(count_commits(), 1, "clean repo has one commit");
 };
 
-test "apply" => sub {
+test "apply and commit" => sub {
   my ($self) = @_;
   apply_patch("../patch");
   is(count_lines("a"), 15, "removed 15 lines from file a");
   is(count_lines("b"), 10, "added 5 lines to file b");
+  is(count_commits(), 1, "still one commit");
+  $self->commit("applied patch ../patch");
+  is(count_commits(), 2, "two commits now");
 };
 
 run_me;
