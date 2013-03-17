@@ -110,6 +110,17 @@ test "entire file" => sub {
   }
 };
 
+test "chunk objects" => sub {
+  my ($self) = @_;
+  $self->p->parse_patch;
+  for my $file ($self->p->files) {
+    note "chunks from file " . $file->path;
+    for my $chunk (@{$file->chunks}) {
+      like($chunk->descriptor, qr/\A\@\@ -\d+,\d+ \+\d+,\d+ \@\@/);
+    }
+  }
+};
+
 
 run_me;
 done_testing;
