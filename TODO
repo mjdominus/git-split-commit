@@ -3,3 +3,23 @@ Minor issues that I might otherwise forget
 
 * Does parsepatch handle permission changes etc. ?
 
+* What if apply_patch yields a conflicted merge?
+
+  (It shouldn't, but you never know.)
+
+* git-splitpatch doesn't work on index diffs, which lack a commit
+  header and a SHA and so forth.  Instead they have an index header
+  that looks like
+
+       diff --git a/a b/a
+       index e8823e1..09f60e9 100644
+
+  Probably not hard to fix.  I hope this thing doesn't turn into a
+  full-blown RD parser though.
+
+* You played a trick in write_chunk to fake up a patch header without
+  actual SHAs or modes. Does it work?  Do you need real SHAs?  Does
+  the fake mode work even with the file is executable, or a symlink?
+  Or is the real problem the missing chunk descriptor bug? Try
+  applying the split patches once that is fixed.
+
