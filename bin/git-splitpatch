@@ -14,3 +14,6 @@ push @result_files, split_patch($_, $opt{d})
 print join "\n", @result_files, ""
   if $opt{v};
 
+sub usage {
+  die "Usage: git-splitpatch [-v] [-d output-dir] patchfile...\n";
+}
