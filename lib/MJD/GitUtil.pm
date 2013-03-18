@@ -1,8 +1,9 @@
 package MJD::GitUtil;
 
 use base 'Exporter';
-our @EXPORT_OK = qw(split_patch hash_file);
+our @EXPORT_OK = qw(split_patch apply_patch hash_file);
 
+use Carp qw(confess croak);
 use MJD::GitUtil::Patch;
 use Digest::SHA1 qw(sha1_hex);
 
@@ -52,6 +53,17 @@ sub write_chunk {
   print $f $chunk->descriptor, "\n";
 
   print $f map "$_\n", @{$chunk->lines};
+}
+
+sub apply_patch {
+  my ($patch) = @_;
+  warn "### Applying patch '$patch'\n";
+  system(qw(git apply --index), $patch) == 0
+    or do {
+      my $st = $? >> 8;
+      croak "Couldn't apply patch '$patch': exit status $st";
+    };
+  system("git status -s");
 }
 
 1;
