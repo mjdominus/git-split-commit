@@ -5,15 +5,19 @@ use Test::Routine;
 use Test::Routine::Util;
 use MJD::GitUtil::Patch;
 
-my $file = "t.dat/split/t1/patch";
+has patchfile => (
+  is => 'rw',
+  default => sub { "t.dat/split/t1/patch" },
+);
 
 has p => (
   is => 'ro',
   lazy => 1,
   clearer => 'reset_p',
   default => sub {
+    my ($self) = @_;
     MJD::GitUtil::Patch->new({
-      file => $file,
+      file => $self->patchfile,
       no_parse => 1,
     });
   },
