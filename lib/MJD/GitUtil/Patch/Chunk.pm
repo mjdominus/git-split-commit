@@ -15,6 +15,7 @@ sub descriptor {
     $c->bpos, $c->blen;
   $desc .= " " . $c->loc
     if defined $c->loc;
+  return $desc;
 }
 
 1;
