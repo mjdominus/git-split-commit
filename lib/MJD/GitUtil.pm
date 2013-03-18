@@ -1,7 +1,25 @@
 package MJD::GitUtil;
+
 use base 'Exporter';
-our @EXPORT_OK = qw(split_patch);
+our @EXPORT_OK = qw(split_patch hash_file);
+
 use MJD::GitUtil::Patch;
+use Digest::SHA1 qw(sha1_hex);
+
+sub hash_file {
+  my ($file) = @_;
+  open my($fh), "<", $file or return;
+  my $data = do {
+    local $/;
+    join "", <$fh>;
+  };
+  return hash_data($data);
+}
+
+sub hash_data {
+  my ($data) = @_;
+  return sha1_hex("blob " . length($data) .  "\0" . $data)
+}
 
 sub split_patch {
   my ($file, $dir) = @_;
