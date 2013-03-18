@@ -17,9 +17,16 @@ Minor issues that I might otherwise forget
   Probably not hard to fix.  I hope this thing doesn't turn into a
   full-blown RD parser though.
 
-* You played a trick in write_chunk to fake up a patch header without
-  actual SHAs or modes. Does it work?  Do you need real SHAs?  Does
-  the fake mode work even with the file is executable, or a symlink?
-  Or is the real problem the missing chunk descriptor bug? Try
-  applying the split patches once that is fixed.
+* You played a trick in write_chunk_file to fake up a patch header
+  without actual SHAs or modes. Does it work?  Do you need real SHAs?
+  Does the fake mode work even with the file is executable, or a
+  symlink?  Or is the real problem the missing chunk descriptor bug?
+  Try applying the split patches once that is fixed.
 
+* test that running splitpatch on a split patch file is idempotent
+
+* splitpatch should have and option like git-add--p's 's' command to
+  split up a single chunk into multiple chunks.
+
+* splitPatch.t should check to see if outgoing patch files can be
+  parsed by parse_patch .
