@@ -7,7 +7,7 @@ use MJD::GitUtil::Patch;
 
 has patchfile => (
   is => 'rw',
-  default => sub { "t.dat/split/t1/patch" },
+  default => sub { "t.dat/parse/p1" },
 );
 
 has p => (
@@ -116,11 +116,19 @@ test "entire file" => sub {
 
 test "chunk objects" => sub {
   my ($self) = @_;
-  $self->p->parse_patch;
-  for my $file ($self->p->files) {
-    note "chunks from file " . $file->path;
-    for my $chunk (@{$file->chunks}) {
-      like($chunk->descriptor, qr/\A\@\@ -\d+,\d+ \+\d+,\d+ \@\@/);
+  my $patchdir = "t.dat/parse";
+  for my $patch (glob "$patchdir/*") {
+    next unless -f $patch;
+    note "Parsing patch file $patch\n";
+    $self->reset_p();
+    $self->patchfile($patch);
+    $self->p->parse_patch;
+
+    for my $file ($self->p->files) {
+      note "chunks from file " . $file->path;
+      for my $chunk (@{$file->chunks}) {
+        like($chunk->descriptor, qr/\A\@\@ -\d+,\d+ \+\d+,\d+ \@\@/);
+      }
     }
   }
 };
