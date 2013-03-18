@@ -5,15 +5,19 @@ use Test::Routine;
 use Test::Routine::Util;
 use MJD::GitUtil::Patch;
 
-my $file = "t.dat/split/t1/patch";
+has patchfile => (
+  is => 'rw',
+  default => sub { "t.dat/parse/p1" },
+);
 
 has p => (
   is => 'ro',
   lazy => 1,
   clearer => 'reset_p',
   default => sub {
+    my ($self) = @_;
     MJD::GitUtil::Patch->new({
-      file => $file,
+      file => $self->patchfile,
       no_parse => 1,
     });
   },
@@ -107,6 +111,25 @@ test "entire file" => sub {
   is(@file, 3, "found three files");
   for my $i (0..2) {
     is($file[$i]->num_chunks, 1, "file $i has one chunk");
+  }
+};
+
+test "chunk objects" => sub {
+  my ($self) = @_;
+  my $patchdir = "t.dat/parse";
+  for my $patch (glob "$patchdir/*") {
+    next unless -f $patch;
+    note "Parsing patch file $patch\n";
+    $self->reset_p();
+    $self->patchfile($patch);
+    $self->p->parse_patch;
+
+    for my $file ($self->p->files) {
+      note "chunks from file " . $file->path;
+      for my $chunk (@{$file->chunks}) {
+        like($chunk->descriptor, qr/\A\@\@ -\d+,\d+ \+\d+,\d+ \@\@/);
+      }
+    }
   }
 };
 

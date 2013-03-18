@@ -1,3 +1,5 @@
+diff --git a/perl-lib/Pobox/Filter/MHLegacy.pm b/perl-lib/Pobox/Filter/MHLegacy.pm
+index 0000000..000000 100644
 --- a/perl-lib/Pobox/Filter/MHLegacy.pm
 +++ b/perl-lib/Pobox/Filter/MHLegacy.pm
 @@ -75,4 +75,30 @@ sub _fixup_rows {

@@ -1,3 +1,5 @@
+diff --git a/perl-lib/Pobox/Filter/Web/Stringizer.pm b/perl-lib/Pobox/Filter/Web/Stringizer.pm
+index 0000000..000000 100644
 --- a/perl-lib/Pobox/Filter/Web/Stringizer.pm
 +++ b/perl-lib/Pobox/Filter/Web/Stringizer.pm
 @@ -84,6 +84,11 @@ sub block_pattern_lines {

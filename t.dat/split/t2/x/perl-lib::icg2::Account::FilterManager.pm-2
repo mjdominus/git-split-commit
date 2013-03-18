@@ -1,3 +1,5 @@
+diff --git a/perl-lib/icg2/Account/FilterManager.pm b/perl-lib/icg2/Account/FilterManager.pm
+index 0000000..000000 100644
 --- a/perl-lib/icg2/Account/FilterManager.pm
 +++ b/perl-lib/icg2/Account/FilterManager.pm
 @@ -81,11 +84,6 @@ sub filter_hash_key {
